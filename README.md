@@ -132,6 +132,10 @@ npm run dev
 Make sure the MongoDB service is running, then run:
 
 ```bash
+npm install --save-dev cross-env
+```
+
+```bash
 npm run dev
 ```
 
