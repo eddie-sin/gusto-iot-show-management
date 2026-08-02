@@ -91,6 +91,14 @@ DATABASE_LOCAL=mongodb://127.0.0.1:27017/gusto_iot_show_dev
 DATABASE=mongodb+srv://YOUR_USERNAME:<db_password>@YOUR_CLUSTER_ADDRESS.mongodb.net/gusto_iot_show?retryWrites=true&w=majority
 
 DATABASE_PASSWORD=YOUR_ATLAS_DATABASE_PASSWORD
+
+JWT_SECRET=use_a_long_random_secret_at_least_32_characters
+JWT_EXPIRES_IN=7d
+
+# One-time Academic Head account setup only
+ADMIN_FULL_NAME=Academic Head Name
+ADMIN_EMAIL=academic.head@gusto.edu.mm
+ADMIN_PASSWORD=replace_with_a_long_unique_password
 ```
 
 Replace:
@@ -180,6 +188,30 @@ Server running on port 5001 in production mode
 Running `npm run prod` on your computer does not deploy the API. It runs the API locally while using the cloud MongoDB Atlas database.
 
 ## API Routes
+
+### Authentication and Academic Head user management
+
+Create the single Academic Head account once with the included local setup
+script. It is not an API route. Fill in `ADMIN_FULL_NAME`, `ADMIN_EMAIL`, and
+`ADMIN_PASSWORD` in `config.env`, then run `npm run create:academic-head`.
+The script refuses to create a second account using the same email and hashes
+the password safely. Remove the three `ADMIN_*` values from `config.env` after
+the account has been created.
+
+| Method | Route | Access | Purpose |
+| --- | --- | --- | --- |
+| POST | `/api/v1/auth/login` | Public | Login as an active admin or manager. |
+| POST | `/api/v1/users` | ADMIN | Create a manager account. |
+| GET | `/api/v1/users` | ADMIN | List admin and manager accounts. |
+| PATCH | `/api/v1/users/:id` | ADMIN | Update a manager's `fullName` or `email`. |
+| PATCH | `/api/v1/users/:id/password` | ADMIN | Reset a manager password. |
+| PATCH | `/api/v1/users/:id/status` | ADMIN | Set a manager to `ACTIVE`, `SUSPENDED`, or `DISABLED`. |
+
+For every ADMIN route, send the login token as an HTTP header:
+
+```text
+Authorization: Bearer YOUR_JWT_TOKEN
+```
 
 ### Read all project shows
 

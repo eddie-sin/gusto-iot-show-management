@@ -2,6 +2,8 @@ const express = require("express");
 const morgan = require("morgan");
 
 const projectShowRouter = require("./routes/projectShowRoutes");
+const authRouter = require("./routes/authRoutes");
+const userRouter = require("./routes/userRoutes");
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorControllers");
 
@@ -26,6 +28,10 @@ app.get("/", (req, res) => {
 
 // Project-show routes
 app.use("/api/v1/project-shows", projectShowRouter);
+
+// Authentication and Academic Head user-management routes
+app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/users", userRouter);
 
 // Handle unknown routes
 app.use((req, res, next) => {
