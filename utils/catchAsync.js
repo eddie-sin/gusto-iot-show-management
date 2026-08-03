@@ -6,16 +6,27 @@ const catchAsync = (fn) => {
 
 module.exports = catchAsync;
 
-/* 
-error sources
-1. new AppError --> create error manually
-access both err.statusCode, err.message
-------------------------------------------------------
--cannot find the url
-- find one tour
+/*
+==========================
+Sources of Errors
+==========================
 
-2. catch(err) --> create error automatically
-access only err.message
-------------------------------------------------------
--async handler functions
+1. Operational errors
+   - Created intentionally using:
+       throw new AppError(...)
+   - Examples:
+       • Resource not found
+       • Invalid request
+       • Unauthorized access
+
+2. Unexpected errors
+   - Generated automatically by Node.js, Mongoose, or other libraries
+   - Examples:
+       • Database connection failure
+       • Validation error
+       • Programming error
+       • TypeError
+
+catchAsync catches any rejected Promise and forwards the error
+to Express's global error handler using next(err).
 */

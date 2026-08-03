@@ -1,49 +1,7 @@
+import groupModel from "./groupModel.js";
+import categoryModel from "./categoryModel.js";
+
 const mongoose = require("mongoose");
-
-const groupSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: [true, "A group must have a project title"],
-    trim: true,
-  },
-
-  groupNumber: {
-    type: String,
-    required: [true, "A group must have a group number"],
-    trim: true,
-  },
-
-  members: {
-    type: [String],
-    required: [true, "A group must have members"],
-    validate: {
-      validator: function (members) {
-        return members.length >= 2;
-      },
-      message: "A group must have at least 2 members",
-    },
-  },
-
-  description: {
-    type: String,
-    required: [true, "A group must have a description"],
-    trim: true,
-  },
-});
-
-const votingCategorySchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "A voting category must have a name"],
-    trim: true,
-  },
-
-  question: {
-    type: String,
-    required: [true, "A voting category must have a question"],
-    trim: true,
-  },
-});
 
 const projectShowSchema = new mongoose.Schema(
   {
@@ -51,7 +9,7 @@ const projectShowSchema = new mongoose.Schema(
       type: String,
       required: [true, "A project show must have a batch"],
       trim: true,
-      match: [/^HnD-\d+$/, "Batch must follow the format HnD-57"],
+      match: [/^HND-\d+$/, "Batch must follow the format HND-57"],
     },
 
     theme: {
@@ -60,12 +18,29 @@ const projectShowSchema = new mongoose.Schema(
       trim: true,
     },
 
-    date: {
+    moduleStartDate: {
       type: Date,
       default: null,
     },
 
-    place: {
+    projectStartDate: {
+      type: Date,
+      default: null,
+    },
+
+    campus: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    floor: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    room: {
       type: String,
       trim: true,
       default: null,
@@ -83,15 +58,19 @@ const projectShowSchema = new mongoose.Schema(
       default: null,
     },
 
-    groups: {
-      type: [groupSchema],
-      default: [],
-    },
+    groups: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Group",
+      },
+    ],
 
-    votingCategories: {
-      type: [votingCategorySchema],
-      default: [],
-    },
+    categories: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Category",
+      },
+    ],
   },
   {
     timestamps: true,

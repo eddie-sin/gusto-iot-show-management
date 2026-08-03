@@ -1,6 +1,9 @@
 const express = require("express");
 const morgan = require("morgan");
 
+const groupRouter = require("./routes/groupRoutes");
+const categoryRouter = require("./routes/categoryRoutes");
+const voteRouter = require("./routes/voteRoutes");
 const projectShowRouter = require("./routes/projectShowRoutes");
 const authRouter = require("./routes/authRoutes");
 const userRouter = require("./routes/userRoutes");
@@ -29,9 +32,23 @@ app.get("/", (req, res) => {
 // Project-show routes
 app.use("/api/v1/project-shows", projectShowRouter);
 
+// Group routes
+app.use("/api/v1/groups", groupRouter);
+
+// Category routes
+app.use("/api/v1/categories", categoryRouter);
+
+// Vote routes
+app.use("/api/v1/votes", voteRouter);
+
 // Authentication and Academic Head user-management routes
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
+
+app.use(
+  "/uploads/groups",
+  express.static("uploads/groups")
+);
 
 // Handle unknown routes
 app.use((req, res, next) => {

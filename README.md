@@ -241,7 +241,7 @@ Example JSON body:
 
 ```json
 {
-  "batch": "HnD-57",
+  "batch": "HND-57",
   "theme": "Smart City",
   "date": null,
   "place": null,
