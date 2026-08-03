@@ -19,8 +19,4 @@ router
   .patch(adminUserController.updateManager)
   .delete(adminUserController.deleteManager);
 
-router.patch("/:id/password").patch(adminUserController.updateManagerPassword);
-
-router.patch("/:id/status").patch(adminUserController.updateManagerStatus);
-
 module.exports = router;

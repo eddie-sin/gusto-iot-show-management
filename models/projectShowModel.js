@@ -1,5 +1,5 @@
-import groupModel from "./groupModel.js";
-import categoryModel from "./categoryModel.js";
+const groupModel = require("./groupModel.js");
+const categoryModel = require("./categoryModel.js");
 
 const mongoose = require("mongoose");
 

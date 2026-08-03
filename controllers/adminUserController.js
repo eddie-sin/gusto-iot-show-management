@@ -133,3 +133,12 @@ exports.deleteManager = catchAsync(async (req, res) => {
 
   res.status(204).json({ status: "success", data: null });
 });
+
+module.exports = {
+  getAllUsers: exports.getAllUsers,
+  getUser: exports.getUser,
+  updateManager: exports.updateManager,
+  updateManagerPassword: exports.updateManagerPassword,
+  updateManagerStatus: exports.updateManagerStatus,
+  deleteManager: exports.deleteManager,
+};

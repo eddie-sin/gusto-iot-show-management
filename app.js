@@ -1,5 +1,6 @@
 const express = require("express");
 const morgan = require("morgan");
+const cors = require("cors");
 
 const groupRouter = require("./routes/groupRoutes");
 const categoryRouter = require("./routes/categoryRoutes");
@@ -11,6 +12,13 @@ const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorControllers");
 
 const app = express();
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 // Parse JSON request bodies
 app.use(express.json());

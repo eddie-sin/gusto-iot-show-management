@@ -33,7 +33,7 @@ const createAndSendToken = (user, statusCode, res) => {
 ========================================== */
 
 // SIGNUP — Creates a manager. This handler is mounted behind ADMIN protection.
-exports.signup = catchAsync(async (req, res, next) => {
+exports.createManager = catchAsync(async (req, res, next) => {
   const { fullName, email, password, passwordConfirm } = req.body;
 
   if (!fullName || !email || !password || !passwordConfirm) {
