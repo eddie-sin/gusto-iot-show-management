@@ -25,8 +25,20 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
 });
 
-// Middleware to handle file uploads for group images
-exports.uploadGroupImages = upload.array("image", 5); // Allow up to 5 images
+const deletePhotos = (photos) => {
+  if (!photos || photos.length === 0) return;
+
+  photos.forEach((photo) => {
+    const filePath = path.join(__dirname, "..", photo.path);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  });
+};
+
+// Middleware to handle file uploads for group photos
+exports.uploadGroupImages = upload.array("photos", 5); // Allow up to 5 images
 
 // GET /api/v1/groups
 exports.getAllGroups = catchAsync(async (req, res) => {
@@ -60,14 +72,14 @@ exports.getGroup = catchAsync(async (req, res, next) => {
 // POST /api/v1/groups
 exports.createGroup = catchAsync(async (req, res, next) => {
   // Handle file upload for group image
-  if (!req.files || !req.files.image) {
+  if (!req.files || req.files.length === 0) {
     return next(new AppError("Please upload a group image", 400));
   }
 
   const photos = req.files.map((file) => ({
     filename: file.filename,
-    originalname: file.originalname,
-    mimetype: file.mimetype,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
     size: file.size,
     path: file.path,
   }));
@@ -131,14 +143,14 @@ exports.updateGroup = catchAsync(async (req, res, next) => {
   if (req.files && req.files.length > 0) {
     const newPhotos = req.files.map((file) => ({
       filename: file.filename,
-      originalname: file.originalname,
-      mimetype: file.mimetype,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
       size: file.size,
       path: file.path,
     }));
     group.photos.push(...newPhotos);
   }
-  
+
   await group.save();
 
   res.status(200).json({

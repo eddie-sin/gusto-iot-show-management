@@ -20,7 +20,10 @@ const findManager = async (id) => {
     throw new AppError("No user found with that ID", 404);
   }
   if (manager.role !== "MANAGER") {
-    throw new AppError("Only manager accounts can be changed through this route", 403);
+    throw new AppError(
+      "Only manager accounts can be changed through this route",
+      403,
+    );
   }
   return manager;
 };
@@ -55,18 +58,23 @@ exports.getUser = catchAsync(async (req, res, next) => {
 });
 
 // PATCH /api/v1/users/:id — Update only a manager's name or email.
-exports.updateManager = catchAsync(async (req, res) => {
+exports.updateManager = catchAsync(async (req, res, next) => {
   if (req.body.password || req.body.passwordConfirm) {
     return next(
-      new AppError("Use the dedicated password route to change a manager password", 400),
+      new AppError(
+        "Use the dedicated password route to change a manager password",
+        400,
+      ),
     );
   }
 
   const manager = await findManager(req.params.id);
 
-  const allowedData = filterObj(req.body, "fullName", "email");
+  const allowedData = filterObj(req.body, "fullName", "email", "status");
   if (Object.keys(allowedData).length === 0) {
-    return next(new AppError("Only fullName and email can be updated here", 400));
+    return next(
+      new AppError("Only fullName, email, and status can be updated here", 400),
+    );
   }
 
   if (allowedData.email && allowedData.email !== manager.email) {
@@ -84,13 +92,17 @@ exports.updateManager = catchAsync(async (req, res) => {
 });
 
 // PATCH /api/v1/users/:id/password — Admin resets a manager password.
-exports.updateManagerPassword = catchAsync(async (req, res) => {
+exports.updateManagerPassword = catchAsync(async (req, res, next) => {
   const { password, passwordConfirm } = req.body;
   if (!password || !passwordConfirm) {
-    return next(new AppError("Please provide password and passwordConfirm", 400));
+    return next(
+      new AppError("Please provide password and passwordConfirm", 400),
+    );
   }
   if (password !== passwordConfirm) {
-    return next(new AppError("Password and password confirmation do not match", 400));
+    return next(
+      new AppError("Password and password confirmation do not match", 400),
+    );
   }
 
   const manager = await findManager(req.params.id);
@@ -106,23 +118,30 @@ exports.updateManagerPassword = catchAsync(async (req, res) => {
   });
 });
 
-// PATCH /api/v1/users/:id/status — Suspend, disable, or reactivate a manager.
-exports.updateManagerStatus = catchAsync(async (req, res) => {
+// PATCH /api/v1/users/:id/status
+exports.updateManagerStatus = catchAsync(async (req, res, next) => {
   const { status } = req.body;
+
   const allowedStatuses = ["ACTIVE", "SUSPENDED", "DISABLED"];
 
   if (!allowedStatuses.includes(status)) {
-    return next(new AppError("Status must be ACTIVE, SUSPENDED, or DISABLED", 400));
+    return next(
+      new AppError("Status must be ACTIVE, SUSPENDED, or DISABLED", 400),
+    );
   }
 
   const manager = await findManager(req.params.id);
 
   manager.status = status;
-  // A suspended, disabled, or reactivated manager must obtain a new token.
-  manager.sessionInvalidatedAt = new Date(Date.now() - 1000);
-  await manager.save({ validateModifiedOnly: true });
 
-  res.status(200).json({ status: "success", data: { user: manager } });
+  await manager.save();
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user: manager,
+    },
+  });
 });
 
 // DELETE /api/v1/users/:id — Permanently delete a manager account.

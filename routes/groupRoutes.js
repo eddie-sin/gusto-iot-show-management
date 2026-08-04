@@ -7,12 +7,12 @@ const router = express.Router();
 router
   .route("/")
   .get(groupController.getAllGroups)
-  .post(upload.array("photos", 5), groupController.createGroup);
+  .post(groupController.uploadGroupImages, groupController.createGroup);
 
 router
   .route("/:id")
   .get(groupController.getGroup)
-  .patch(upload.array("photos", 5), groupController.updateGroup)
+  .patch(groupController.uploadGroupImages, groupController.updateGroup)
   .delete(groupController.deleteGroup);
 
 module.exports = router;

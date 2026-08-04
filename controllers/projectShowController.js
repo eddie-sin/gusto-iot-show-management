@@ -17,7 +17,10 @@ exports.getAllProjectShows = catchAsync(async (req, res, next) => {
 
 // GET /api/v1/project-shows/:id
 exports.getProjectShow = catchAsync(async (req, res, next) => {
-  const projectShow = await ProjectShow.findById(req.params.id);
+  const projectShow = await ProjectShow
+  .findById(req.params.id)
+  .populate("groups")
+  .populate("categories");
 
   if (!projectShow) {
     return next(new AppError("No project show found with that ID", 404));
