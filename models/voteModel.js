@@ -2,36 +2,34 @@ const mongoose = require("mongoose");
 
 const voteSchema = new mongoose.Schema(
   {
-    sessionID: {
-      type: String,
-      trim: true,
-      required: [true, "A vote must have a session ID"],
-      unique: true,
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: [true, "A vote must belong to a project"],
     },
 
-    projectShowID: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "ProjectShow",
-        required: [true, "A vote must be associated with a project show"],
-      },
-    ],
+    // This is the _id of the embedded projectShow subdocument in Project.
+    projectShow: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "A vote must be associated with a project show"],
+    },
 
-    groupID: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Group",
-        required: [true, "A vote must be associated with a group"],
-      },
-    ],
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+      required: [true, "A vote must be associated with a group"],
+    },
 
-    categoryID: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",
-        required: [true, "A vote must be associated with a category"],
-      },
-    ],
+    votingCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "A vote must be associated with a voting category"],
+    },
+
+    voterToken: {
+      type: String,
+      trim: true,
+      required: [true, "A vote must have a voter token"],
+    },
   },
   {
     timestamps: true,
@@ -39,7 +37,10 @@ const voteSchema = new mongoose.Schema(
   },
 );
 
-voteSchema.index({ sessionID: 1, projectShowID: 1, groupID: 1, categoryID: 1 }, { unique: true });
+voteSchema.index(
+  { projectShow: 1, votingCategory: 1, voterToken: 1 },
+  { unique: true },
+);
 
 const Vote = mongoose.model("Vote", voteSchema);
 
