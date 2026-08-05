@@ -202,10 +202,12 @@ the account has been created.
 | --- | --- | --- | --- |
 | POST | `/api/v1/auth/login` | Public | Login as an active admin or manager. |
 | POST | `/api/v1/users` | ADMIN | Create a manager account. |
-| GET | `/api/v1/users` | ADMIN | List admin and manager accounts. |
-| PATCH | `/api/v1/users/:id` | ADMIN | Update a manager's `fullName` or `email`. |
+| GET | `/api/v1/users` | ADMIN | List managers with `fullName`, `email`, and `status`. |
+| GET | `/api/v1/users/:id` | ADMIN | Get one manager with `fullName`, `email`, `status`, and `createdAt`. |
+| PATCH | `/api/v1/users/:id` | ADMIN | Update a manager's `fullName`, `email`, or `status`. |
 | PATCH | `/api/v1/users/:id/password` | ADMIN | Reset a manager password. |
 | PATCH | `/api/v1/users/:id/status` | ADMIN | Set a manager to `ACTIVE`, `SUSPENDED`, or `DISABLED`. |
+| DELETE | `/api/v1/users/:id` | ADMIN | Delete a manager account. |
 
 For every ADMIN route, send the login token as an HTTP header:
 

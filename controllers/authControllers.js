@@ -32,36 +32,6 @@ const createAndSendToken = (user, statusCode, res) => {
    ROUTE HANDLERS
 ========================================== */
 
-// SIGNUP — Creates a manager. This handler is mounted behind ADMIN protection.
-exports.createManager = catchAsync(async (req, res, next) => {
-  const { fullName, email, password, passwordConfirm } = req.body;
-
-  if (!fullName || !email || !password || !passwordConfirm) {
-    return next(
-      new AppError("Please provide fullName, email, password, and passwordConfirm", 400),
-    );
-  }
-
-  if (password !== passwordConfirm) {
-    return next(new AppError("Password and password confirmation do not match", 400));
-  }
-
-  // Role and status deliberately do not come from the request body.
-  const newManager = await User.create({
-    fullName,
-    email,
-    password,
-    role: "MANAGER",
-    status: "ACTIVE",
-  });
-
-  newManager.password = undefined;
-  res.status(201).json({
-    status: "success",
-    data: { user: newManager },
-  });
-});
-
 // LOGIN — Authenticates an active ADMIN or MANAGER account.
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;

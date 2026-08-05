@@ -63,39 +63,27 @@ module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
+  let error = err;
+
+  // Normalize known database and upload errors before selecting the response format.
+  if (error.name === "CastError") error = handleCastErrorDB(error);
+  if (error.code === 11000) error = handleDuplicateFieldsDB(error);
+  if (error.name === "ValidationError") error = handleValidationErrorDB(error);
+  if (error.code && String(error.code).startsWith("LIMIT_")) {
+    error = handleMulterError(error);
+  }
+
   if ((process.env.NODE_ENV || "development") === "development") {
-    // In development, also handle multer errors for better UX
-    if (err.code && err.code.startsWith("LIMIT_")) {
-      const multerError = handleMulterError(err);
-      return res.status(multerError.statusCode).json({
-        status: multerError.status,
-        error: multerError,
-        message: multerError.message,
-        stack: err.stack,
-      });
-    }
-    sendErrorDev(err, req, res);
+    sendErrorDev(error, req, res);
   } else {
-    // In production, avoid shallow-copying Error (loses props). Work with original.
-    let error = err;
-
-    // Helpful debug logs (will not be sent to client)
+    // Helpful debug logs (will not be sent to the client)
     console.error("Prod error details:", {
-      name: error.name,
-      code: error.code,
-      message: error.message,
-      keyValue: error.keyValue,
-      errors: error.errors && Object.keys(error.errors),
+      name: err.name,
+      code: err.code,
+      message: err.message,
+      keyValue: err.keyValue,
+      errors: err.errors && Object.keys(err.errors),
     });
-
-    // handle mongoose specific errors
-    if (error.name === "CastError") error = handleCastErrorDB(error);
-    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
-    if (error.name === "ValidationError") error = handleValidationErrorDB(error);
-    // handle multer errors
-    if (error.code && String(error.code).startsWith("LIMIT_")) {
-      error = handleMulterError(error);
-    }
 
     sendErrorProd(error, req, res);
   }

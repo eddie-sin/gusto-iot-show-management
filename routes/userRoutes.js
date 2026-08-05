@@ -1,7 +1,7 @@
 const express = require("express");
 
 const authController = require("../controllers/authControllers");
-const adminUserController = require("../controllers/adminUserController");
+const userController = require("../controllers/userController");
 
 const router = express.Router();
 
@@ -10,21 +10,21 @@ router.use(authController.protect, authController.restrictTo("ADMIN"));
 
 router
   .route("/")
-  .get(adminUserController.getAllUsers)
-  .post(authController.createManager);
+  .get(userController.getAllUsers)
+  .post(userController.createManager);
 
 router
   .route("/:id")
-  .get(adminUserController.getUser)
-  .patch(adminUserController.updateManager)
-  .delete(adminUserController.deleteManager);
+  .get(userController.getUser)
+  .patch(userController.updateManager)
+  .delete(userController.deleteManager);
 
 router
   .route("/:id/password")
-  .patch(adminUserController.updateManagerPassword);
+  .patch(userController.updateManagerPassword);
 
 router
   .route("/:id/status")
-  .patch(adminUserController.updateManagerStatus);
+  .patch(userController.updateManagerStatus);
 
 module.exports = router;
