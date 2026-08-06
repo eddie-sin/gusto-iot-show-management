@@ -28,6 +28,37 @@ const groupSchema = new mongoose.Schema(
       required: [true, "A group must have a project title"],
       trim: true,
     },
+
+    description: {
+      type: String,
+      required: [true, "A group must have a project description"],
+      trim: true,
+      maxlength: [1200, "A group description cannot exceed 1200 characters"],
+    },
+
+    status: {
+      type: String,
+      enum: {
+        values: ["ACTIVE", "INACTIVE"],
+        message: "Group status must be ACTIVE or INACTIVE",
+      },
+      default: "ACTIVE",
+      required: true,
+    },
+
+    images: {
+      type: [
+        {
+          type: String,
+          trim: true,
+        },
+      ],
+      default: [],
+      validate: {
+        validator: (images) => images.length <= 3,
+        message: "A group can have at most 3 images",
+      },
+    },
   },
   {
     timestamps: true,

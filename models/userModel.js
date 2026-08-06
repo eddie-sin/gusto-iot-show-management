@@ -48,8 +48,8 @@ const userSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ["ACTIVE", "SUSPENDED", "DISABLED"],
-        message: "Status must be ACTIVE, SUSPENDED, or DISABLED",
+        values: ["ACTIVE", "DISABLED"],
+        message: "Status must be ACTIVE or DISABLED",
       },
       default: "ACTIVE",
       required: true,
@@ -81,9 +81,10 @@ userSchema.methods.correctPassword = async function (
 };
 
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
-  const invalidationDates = [this.passwordChangedAt, this.sessionInvalidatedAt].filter(
-    Boolean,
-  );
+  const invalidationDates = [
+    this.passwordChangedAt,
+    this.sessionInvalidatedAt,
+  ].filter(Boolean);
   if (invalidationDates.length === 0) return false;
 
   const latestInvalidation = new Date(

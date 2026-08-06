@@ -17,6 +17,14 @@ const signToken = (id) =>
 // Return a token without ever returning password-related fields.
 const createAndSendToken = (user, statusCode, res) => {
   const token = signToken(user._id);
+  const cookieOptions = {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+
+  res.cookie("jwt", token, cookieOptions);
   user.password = undefined;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
@@ -60,6 +68,8 @@ exports.protect = catchAsync(async (req, res, next) => {
   let token;
   if (req.headers.authorization?.startsWith("Bearer ")) {
     token = req.headers.authorization.split(" ")[1];
+  } else if (req.cookies?.jwt) {
+    token = req.cookies.jwt;
   }
 
   if (!token) return next(new AppError("You are not logged in. Please log in first.", 401));
@@ -79,6 +89,16 @@ exports.protect = catchAsync(async (req, res, next) => {
   req.user = currentUser;
   next();
 });
+
+exports.logout = (req, res) => {
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+
+  res.status(200).json({ status: "success" });
+};
 
 // RESTRICT TO — Limits a protected route to specified roles.
 exports.restrictTo = (...roles) => (req, res, next) => {

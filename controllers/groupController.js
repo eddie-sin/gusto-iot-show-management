@@ -1,182 +1,256 @@
 const Group = require("../models/groupModel");
+const Project = require("../models/projectModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const {
+  deleteStoredImages,
+  getUploadedImagePaths,
+} = require("../middleware/uploadMiddleware");
+const {
+  invalidateProjectPublication,
+} = require("../services/votingService");
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, "../uploads/groups");
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
+const GROUP_FIELDS = ["project", "members", "title", "description"];
+const GROUP_UPDATE_FIELDS = ["members", "title", "description", "status"];
+const PROJECT_SUMMARY_FIELDS = "batch status projectManager";
+const GROUP_LIST_FIELDS = "project groupNumber title status";
+const GROUP_LIST_PROJECT_FIELDS = "batch";
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
-});
+const hasOwn = (object, key) =>
+  Object.prototype.hasOwnProperty.call(object, key);
 
-const deletePhotos = (photos) => {
-  if (!photos || photos.length === 0) return;
+const rejectUnknownFields = (body, allowedFields) => {
+  const unknownFields = Object.keys(body).filter(
+    (field) => !allowedFields.includes(field),
+  );
 
-  photos.forEach((photo) => {
-    const filePath = path.join(__dirname, "..", photo.path);
-
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  });
+  if (unknownFields.length > 0) {
+    throw new AppError(
+      `These fields are not allowed: ${unknownFields.join(", ")}`,
+      400,
+    );
+  }
 };
 
-// Middleware to handle file uploads for group photos
-exports.uploadGroupImages = upload.array("photos", 5); // Allow up to 5 images
+const parseMembers = (members) => {
+  if (Array.isArray(members)) return members;
+  if (typeof members !== "string") return members;
 
-// GET /api/v1/groups
+  const trimmedMembers = members.trim();
+  if (!trimmedMembers.startsWith("[")) return [trimmedMembers];
+
+  let parsedMembers;
+  try {
+    parsedMembers = JSON.parse(trimmedMembers);
+  } catch (error) {
+    throw new AppError("members must be a valid JSON array of names", 400);
+  }
+
+  if (!Array.isArray(parsedMembers)) {
+    throw new AppError("members must be an array of names", 400);
+  }
+
+  return parsedMembers;
+};
+
+const ensureProjectAccess = (project, user) => {
+  if (user.role === "ADMIN") return;
+
+  if (
+    !project.projectManager ||
+    project.projectManager.toString() !== user._id.toString()
+  ) {
+    throw new AppError(
+      "You can only manage groups for projects assigned to you",
+      403,
+    );
+  }
+};
+
+const ensureDraftProject = (project) => {
+  if (project.status !== "DRAFT") {
+    throw new AppError(
+      "Groups can only be created, updated, or deleted while the project is in draft status",
+      400,
+    );
+  }
+};
+
+const findProject = async (projectId) => {
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new AppError("No project found with that ID", 404);
+  }
+  return project;
+};
+
+const findGroupWithProject = async (groupId) => {
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw new AppError("No group found with that ID", 404);
+  }
+
+  const project = await findProject(group.project);
+  return { group, project };
+};
+
+const getNextGroupNumber = async (projectId) => {
+  const lastGroup = await Group.findOne({ project: projectId })
+    .select("groupNumber")
+    .sort({ groupNumber: -1 });
+
+  return lastGroup ? lastGroup.groupNumber + 1 : 1;
+};
+
+const closeGroupNumberGap = async (projectId, deletedGroupNumber) => {
+  const laterGroups = await Group.find({
+    project: projectId,
+    groupNumber: { $gt: deletedGroupNumber },
+  }).sort({ groupNumber: 1 });
+
+  for (const laterGroup of laterGroups) {
+    await Group.updateOne(
+      { _id: laterGroup._id },
+      { $inc: { groupNumber: -1 } },
+    );
+  }
+};
+
+// POST /api/v1/groups - ADMIN or the assigned MANAGER, DRAFT project only
+exports.createGroup = catchAsync(async (req, res, next) => {
+  try {
+    rejectUnknownFields(req.body, GROUP_FIELDS);
+  } catch (error) {
+    return next(error);
+  }
+
+  const requiredFields = ["project", "members", "title", "description"];
+  const missingFields = requiredFields.filter(
+    (field) => !hasOwn(req.body, field) || req.body[field] === "",
+  );
+
+  if (missingFields.length > 0) {
+    return next(
+      new AppError(`Please provide: ${missingFields.join(", ")}`, 400),
+    );
+  }
+
+  const project = await findProject(req.body.project);
+  ensureProjectAccess(project, req.user);
+  ensureDraftProject(project);
+
+  const groupData = {};
+  GROUP_FIELDS.forEach((field) => {
+    if (hasOwn(req.body, field)) groupData[field] = req.body[field];
+  });
+  groupData.members = parseMembers(groupData.members);
+  groupData.images = getUploadedImagePaths(req.files);
+  groupData.groupNumber = await getNextGroupNumber(project._id);
+
+  const group = await Group.create(groupData);
+  await invalidateProjectPublication(project, req.user._id);
+  await group.populate("project", PROJECT_SUMMARY_FIELDS);
+
+  res.status(201).json({
+    status: "success",
+    data: { group },
+  });
+});
+
+// GET /api/v1/groups - ADMIN sees all; MANAGER sees assigned-project groups
 exports.getAllGroups = catchAsync(async (req, res) => {
-  const groups = await Group.find();
+  let filter = {};
+
+  if (req.user.role === "MANAGER") {
+    const assignedProjects = await Project.find({
+      projectManager: req.user._id,
+    }).select("_id");
+
+    filter = {
+      project: { $in: assignedProjects.map((project) => project._id) },
+    };
+  }
+
+  const groups = await Group.find(filter)
+    .select(GROUP_LIST_FIELDS)
+    .populate("project", GROUP_LIST_PROJECT_FIELDS)
+    .sort({ project: 1, groupNumber: 1 });
 
   res.status(200).json({
     status: "success",
     results: groups.length,
-    data: {
-      groups,
-    },
+    data: { groups },
   });
 });
 
-// GET /api/v1/groups/:id
-exports.getGroup = catchAsync(async (req, res, next) => {
-  const group = await Group.findById(req.params.id);
+// GET /api/v1/groups/:id - ADMIN or the project's assigned MANAGER
+exports.getGroup = catchAsync(async (req, res) => {
+  const { group, project } = await findGroupWithProject(req.params.id);
+  ensureProjectAccess(project, req.user);
 
-  if (!group) {
-    return next(new AppError("No group found with that ID", 404));
-  }
+  await group.populate("project", PROJECT_SUMMARY_FIELDS);
 
   res.status(200).json({
     status: "success",
-    data: {
-      group,
-    },
+    data: { group },
   });
 });
 
-// POST /api/v1/groups
-exports.createGroup = catchAsync(async (req, res, next) => {
-  // Handle file upload for group image
-  if (!req.files || req.files.length === 0) {
-    return next(new AppError("Please upload a group image", 400));
-  }
-
-  const photos = req.files.map((file) => ({
-    filename: file.filename,
-    originalName: file.originalname,
-    mimeType: file.mimetype,
-    size: file.size,
-    path: file.path,
-  }));
-
-  const group = await Group.create(
-    {
-      title: req.body.title,
-
-      groupNumber: req.body.groupNumber,
-
-      members: Array.isArray(req.body.members)
-        ? req.body.members
-        : [req.body.members],
-
-      description: req.body.description,
-
-      photos: photos,
-    },
-    { new: true, runValidators: true },
-  );
-
-  if (!group) {
-    return next(new AppError("Failed to create group", 500));
-  }
-
-  res.status(201).json({
-    status: "success",
-    data: {
-      group,
-    },
-  });
-});
-
-// PATCH /api/v1/groups/:id
+// PATCH /api/v1/groups/:id - ADMIN or assigned MANAGER, DRAFT project only
 exports.updateGroup = catchAsync(async (req, res, next) => {
-  const group = await Group.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
-  });
+  const uploadedFiles = req.files || [];
 
-  if (!group) {
-    return next(new AppError("No group found with that ID", 404));
+  try {
+    rejectUnknownFields(req.body, GROUP_UPDATE_FIELDS);
+  } catch (error) {
+    return next(error);
   }
 
-  // Update text fields
-  const allowedFields = ["title", "groupNumber", "description"];
-  allowedFields.forEach((field) => {
-    if (req.body[field] !== undefined) {
-      group[field] = req.body[field];
-    }
-  });
-
-  // Update members
-  if (req.body.members) {
-    group.members = Array.isArray(req.body.members)
-      ? req.body.members
-      : [req.body.members];
+  if (Object.keys(req.body).length === 0 && uploadedFiles.length === 0) {
+    return next(new AppError("Please provide at least one field to update", 400));
   }
 
-  // Add new photos if uploaded
-  if (req.files && req.files.length > 0) {
-    const newPhotos = req.files.map((file) => ({
-      filename: file.filename,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      path: file.path,
-    }));
-    group.photos.push(...newPhotos);
+  const { group, project } = await findGroupWithProject(req.params.id);
+  ensureProjectAccess(project, req.user);
+  ensureDraftProject(project);
+
+  GROUP_UPDATE_FIELDS.forEach((field) => {
+    if (hasOwn(req.body, field)) group[field] = req.body[field];
+  });
+
+  if (hasOwn(req.body, "members")) {
+    group.members = parseMembers(req.body.members);
+  }
+
+  const oldImages = [...group.images];
+  if (uploadedFiles.length > 0) {
+    group.images = getUploadedImagePaths(uploadedFiles);
   }
 
   await group.save();
+  await invalidateProjectPublication(project, req.user._id);
+
+  if (uploadedFiles.length > 0) deleteStoredImages(oldImages);
+  await group.populate("project", PROJECT_SUMMARY_FIELDS);
 
   res.status(200).json({
     status: "success",
-    data: {
-      group,
-    },
+    data: { group },
   });
 });
 
-// DELETE /api/v1/groups/:id
-exports.deleteGroup = catchAsync(async (req, res, next) => {
-  const group = await Group.findByIdAndDelete(req.params.id);
+// DELETE /api/v1/groups/:id - ADMIN or assigned MANAGER, DRAFT project only
+exports.deleteGroup = catchAsync(async (req, res) => {
+  const { group, project } = await findGroupWithProject(req.params.id);
+  ensureProjectAccess(project, req.user);
+  ensureDraftProject(project);
 
-  if (!group) {
-    return next(new AppError("No group found with that ID", 404));
-  }
-
-  // Delete associated photos from the server
-  deletePhotos(group.photos);
-
-  // Delete database record
+  const deletedGroupNumber = group.groupNumber;
+  const projectId = group.project;
   await group.deleteOne();
+  await closeGroupNumberGap(projectId, deletedGroupNumber);
+  await invalidateProjectPublication(project, req.user._id);
+  deleteStoredImages(group.images);
 
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
+  res.status(204).json({ status: "success", data: null });
 });

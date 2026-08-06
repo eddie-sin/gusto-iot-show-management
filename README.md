@@ -95,6 +95,10 @@ DATABASE_PASSWORD=YOUR_ATLAS_DATABASE_PASSWORD
 JWT_SECRET=use_a_long_random_secret_at_least_32_characters
 JWT_EXPIRES_IN=7d
 
+# Optional in development; set this to the public HTTPS origin in production.
+PUBLIC_BASE_URL=http://localhost:5001
+VOTING_TIMEZONE_OFFSET=+06:30
+
 # One-time Academic Head account setup only
 ADMIN_FULL_NAME=Academic Head Name
 ADMIN_EMAIL=academic.head@gusto.edu.mm
@@ -206,7 +210,7 @@ the account has been created.
 | GET | `/api/v1/users/:id` | ADMIN | Get one manager with `fullName`, `email`, `status`, and `createdAt`. |
 | PATCH | `/api/v1/users/:id` | ADMIN | Update a manager's `fullName`, `email`, or `status`. |
 | PATCH | `/api/v1/users/:id/password` | ADMIN | Reset a manager password. |
-| PATCH | `/api/v1/users/:id/status` | ADMIN | Set a manager to `ACTIVE`, `SUSPENDED`, or `DISABLED`. |
+| PATCH | `/api/v1/users/:id/status` | ADMIN | Set a manager to `ACTIVE` or `DISABLED`. Managers with draft or active projects cannot be disabled. |
 | DELETE | `/api/v1/users/:id` | ADMIN | Delete a manager account. |
 
 For every ADMIN route, send the login token as an HTTP header:
@@ -214,6 +218,27 @@ For every ADMIN route, send the login token as an HTTP header:
 ```text
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
+
+### Project-show voting
+
+The assigned manager controls publication, schedule overrides, and the live QR
+display from the Voting tab inside a project. Publishing requires complete show
+information, at least two active groups, and at least two complete voting
+categories.
+
+| Method | Route | Access | Purpose |
+| --- | --- | --- | --- |
+| POST | `/api/v1/projects/:id/publish` | ADMIN or assigned MANAGER | Validate and publish the project show. |
+| POST | `/api/v1/projects/:id/unpublish` | ADMIN or assigned MANAGER | Unpublish before voting opens. |
+| PATCH | `/api/v1/projects/:id/voting-mode` | ADMIN or assigned MANAGER | Use `SCHEDULED`, `FORCED_OPEN`, or `FORCED_CLOSED`. |
+| POST | `/api/v1/projects/:id/qr-token` | ADMIN or assigned MANAGER | Generate a five-second single-use QR token. |
+| GET | `/vote/:batch` | Approved voting session | Open the protected voting website. |
+| POST | `/api/v1/voting/:batch/admit` | Live QR token | Exchange a QR token for an HTTP-only voting session. |
+| POST | `/api/v1/voting/:batch/votes` | Approved voting session | Submit one complete ballot. |
+
+When testing with a phone on the same network, either open the manager panel
+through the laptop's LAN address or set `PUBLIC_BASE_URL` to that reachable
+address. In production, set it to the public HTTPS origin.
 
 ### Read all project shows
 

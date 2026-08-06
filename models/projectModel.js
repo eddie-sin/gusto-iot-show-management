@@ -60,8 +60,46 @@ const projectShowSchema = new mongoose.Schema(
       type: [votingCategorySchema],
       default: [],
     },
+
+    isPublished: {
+      type: Boolean,
+      default: false,
+    },
+
+    publishedAt: {
+      type: Date,
+      default: null,
+    },
+
+    votingMode: {
+      type: String,
+      enum: {
+        values: ["SCHEDULED", "FORCED_OPEN", "FORCED_CLOSED"],
+        message:
+          "Voting mode must be SCHEDULED, FORCED_OPEN, or FORCED_CLOSED",
+      },
+      default: "SCHEDULED",
+    },
+
+    // Incrementing this invalidates every unsubmitted session from an older voting window.
+    votingGeneration: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+
+    votingModeChangedAt: {
+      type: Date,
+      default: null,
+    },
+
+    votingModeChangedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
-  { _id: true },
+  { _id: false },
 );
 
 const projectSchema = new mongoose.Schema(
@@ -72,6 +110,7 @@ const projectSchema = new mongoose.Schema(
       trim: true,
       uppercase: true,
       match: [/^HND-\d+$/, "Batch must follow the format HND-57"],
+      unique: true,
     },
 
     projectManager: {
@@ -80,9 +119,9 @@ const projectSchema = new mongoose.Schema(
       required: [true, "A project must have a project manager"],
     },
 
-    moduleStartDate: {
+    projectStartDate: {
       type: Date,
-      required: [true, "A project must have a module start date"],
+      required: [true, "A project must have a project start date"],
     },
 
     theme: {
@@ -113,8 +152,6 @@ const projectSchema = new mongoose.Schema(
     collection: "projects",
   },
 );
-
-projectSchema.index({ batch: 1 }, { unique: true });
 
 const Project = mongoose.model("Project", projectSchema);
 

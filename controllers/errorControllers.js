@@ -58,6 +58,18 @@ const sendErrorProd = (err, req, res) => {
   }
 };
 
+const sendErrorPage = (err, req, res) => {
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).render("errors/error", {
+    pageTitle: statusCode === 404 ? "Page not found" : "Error",
+    statusCode,
+    message:
+      err.isOperational || process.env.NODE_ENV === "development"
+        ? err.message
+        : "The request could not be completed. Please try again.",
+  });
+};
+
 module.exports = (err, req, res, next) => {
   // default values
   err.statusCode = err.statusCode || 500;
@@ -72,6 +84,10 @@ module.exports = (err, req, res, next) => {
   if (error.code && String(error.code).startsWith("LIMIT_")) {
     error = handleMulterError(error);
   }
+
+  const isPageRequest =
+    !req.originalUrl.startsWith("/api/") && req.accepts("html");
+  if (isPageRequest) return sendErrorPage(error, req, res);
 
   if ((process.env.NODE_ENV || "development") === "development") {
     sendErrorDev(error, req, res);

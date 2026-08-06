@@ -10,6 +10,13 @@ const dotenv = require("dotenv");
 dotenv.config({ path: "./config.env" });
 
 const app = require("./app");
+const {
+  startProjectStatusScheduler,
+  stopProjectStatusScheduler,
+} = require("./services/projectStatusScheduler");
+const {
+  cleanupLegacyVoteIndexes,
+} = require("./services/votingIndexService");
 
 let databaseConnection;
 
@@ -29,8 +36,15 @@ let server;
 
 mongoose
   .connect(databaseConnection)
-  .then(() => {
+  .then(async () => {
     console.log("Database connection successful");
+    const removedVoteIndexes = await cleanupLegacyVoteIndexes();
+    if (removedVoteIndexes.length > 0) {
+      console.log(
+        `Removed legacy vote indexes: ${removedVoteIndexes.join(", ")}`,
+      );
+    }
+    startProjectStatusScheduler();
 
     const port = process.env.PORT || 5000;
 
@@ -50,6 +64,7 @@ process.on("unhandledRejection", (err) => {
   console.error(err.name, err.message);
 
   if (server) {
+    stopProjectStatusScheduler();
     server.close(() => process.exit(1));
   } else {
     process.exit(1);

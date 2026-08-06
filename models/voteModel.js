@@ -1,5 +1,21 @@
 const mongoose = require("mongoose");
 
+const voteSelectionSchema = new mongoose.Schema(
+  {
+    votingCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "A selection must have a voting category"],
+    },
+
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+      required: [true, "A selection must have a group"],
+    },
+  },
+  { _id: false },
+);
+
 const voteSchema = new mongoose.Schema(
   {
     project: {
@@ -8,27 +24,19 @@ const voteSchema = new mongoose.Schema(
       required: [true, "A vote must belong to a project"],
     },
 
-    // This is the _id of the embedded projectShow subdocument in Project.
-    projectShow: {
+    votingSession: {
       type: mongoose.Schema.Types.ObjectId,
-      required: [true, "A vote must be associated with a project show"],
+      ref: "VotingSession",
+      required: [true, "A vote must belong to a voting session"],
     },
 
-    group: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Group",
-      required: [true, "A vote must be associated with a group"],
-    },
-
-    votingCategory: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: [true, "A vote must be associated with a voting category"],
-    },
-
-    voterToken: {
-      type: String,
-      trim: true,
-      required: [true, "A vote must have a voter token"],
+    selections: {
+      type: [voteSelectionSchema],
+      required: [true, "A vote must have selections"],
+      validate: {
+        validator: (selections) => selections.length > 0,
+        message: "A vote must have at least one selection",
+      },
     },
   },
   {
@@ -37,10 +45,7 @@ const voteSchema = new mongoose.Schema(
   },
 );
 
-voteSchema.index(
-  { projectShow: 1, votingCategory: 1, voterToken: 1 },
-  { unique: true },
-);
+voteSchema.index({ project: 1, votingSession: 1 }, { unique: true });
 
 const Vote = mongoose.model("Vote", voteSchema);
 

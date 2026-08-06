@@ -1,18 +1,33 @@
 const express = require("express");
+
+const authController = require("../controllers/authControllers");
 const groupController = require("../controllers/groupController");
-const upload = require("../middleware/uploadMiddleware");
+const uploadController = require("../middleware/uploadMiddleware");
 
 const router = express.Router();
+
+router.use(
+  authController.protect,
+  authController.restrictTo("ADMIN", "MANAGER"),
+);
 
 router
   .route("/")
   .get(groupController.getAllGroups)
-  .post(groupController.uploadGroupImages, groupController.createGroup);
+  .post(
+    uploadController.uploadGroupImages,
+    uploadController.cleanupFailedUploads,
+    groupController.createGroup,
+  );
 
 router
   .route("/:id")
   .get(groupController.getGroup)
-  .patch(groupController.uploadGroupImages, groupController.updateGroup)
+  .patch(
+    uploadController.uploadGroupImages,
+    uploadController.cleanupFailedUploads,
+    groupController.updateGroup,
+  )
   .delete(groupController.deleteGroup);
 
 module.exports = router;
