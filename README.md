@@ -202,16 +202,16 @@ The script refuses to create a second account using the same email and hashes
 the password safely. Remove the three `ADMIN_*` values from `config.env` after
 the account has been created.
 
-| Method | Route | Access | Purpose |
-| --- | --- | --- | --- |
-| POST | `/api/v1/auth/login` | Public | Login as an active admin or manager. |
-| POST | `/api/v1/users` | ADMIN | Create a manager account. |
-| GET | `/api/v1/users` | ADMIN | List managers with `fullName`, `email`, and `status`. |
-| GET | `/api/v1/users/:id` | ADMIN | Get one manager with `fullName`, `email`, `status`, and `createdAt`. |
-| PATCH | `/api/v1/users/:id` | ADMIN | Update a manager's `fullName`, `email`, or `status`. |
-| PATCH | `/api/v1/users/:id/password` | ADMIN | Reset a manager password. |
-| PATCH | `/api/v1/users/:id/status` | ADMIN | Set a manager to `ACTIVE` or `DISABLED`. Managers with draft or active projects cannot be disabled. |
-| DELETE | `/api/v1/users/:id` | ADMIN | Delete a manager account. |
+| Method | Route                        | Access | Purpose                                                                                             |
+| ------ | ---------------------------- | ------ | --------------------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/auth/login`         | Public | Login as an active admin or manager.                                                                |
+| POST   | `/api/v1/users`              | ADMIN  | Create a manager account.                                                                           |
+| GET    | `/api/v1/users`              | ADMIN  | List managers with `fullName`, `email`, and `status`.                                               |
+| GET    | `/api/v1/users/:id`          | ADMIN  | Get one manager with `fullName`, `email`, `status`, and `createdAt`.                                |
+| PATCH  | `/api/v1/users/:id`          | ADMIN  | Update a manager's `fullName`, `email`, or `status`.                                                |
+| PATCH  | `/api/v1/users/:id/password` | ADMIN  | Reset a manager password.                                                                           |
+| PATCH  | `/api/v1/users/:id/status`   | ADMIN  | Set a manager to `ACTIVE` or `DISABLED`. Managers with draft or active projects cannot be disabled. |
+| DELETE | `/api/v1/users/:id`          | ADMIN  | Delete a manager account.                                                                           |
 
 For every ADMIN route, send the login token as an HTTP header:
 
@@ -226,15 +226,15 @@ display from the Voting tab inside a project. Publishing requires complete show
 information, at least two active groups, and at least two complete voting
 categories.
 
-| Method | Route | Access | Purpose |
-| --- | --- | --- | --- |
-| POST | `/api/v1/projects/:id/publish` | ADMIN or assigned MANAGER | Validate and publish the project show. |
-| POST | `/api/v1/projects/:id/unpublish` | ADMIN or assigned MANAGER | Unpublish before voting opens. |
-| PATCH | `/api/v1/projects/:id/voting-mode` | ADMIN or assigned MANAGER | Use `SCHEDULED`, `FORCED_OPEN`, or `FORCED_CLOSED`. |
-| POST | `/api/v1/projects/:id/qr-token` | ADMIN or assigned MANAGER | Generate a five-second single-use QR token. |
-| GET | `/vote/:batch` | Approved voting session | Open the protected voting website. |
-| POST | `/api/v1/voting/:batch/admit` | Live QR token | Exchange a QR token for an HTTP-only voting session. |
-| POST | `/api/v1/voting/:batch/votes` | Approved voting session | Submit one complete ballot. |
+| Method | Route                              | Access                    | Purpose                                              |
+| ------ | ---------------------------------- | ------------------------- | ---------------------------------------------------- |
+| POST   | `/api/v1/projects/:id/publish`     | ADMIN or assigned MANAGER | Validate and publish the project show.               |
+| POST   | `/api/v1/projects/:id/unpublish`   | ADMIN or assigned MANAGER | Unpublish before voting opens.                       |
+| PATCH  | `/api/v1/projects/:id/voting-mode` | ADMIN or assigned MANAGER | Use `SCHEDULED`, `FORCED_OPEN`, or `FORCED_CLOSED`.  |
+| POST   | `/api/v1/projects/:id/qr-token`    | ADMIN or assigned MANAGER | Generate a five-second single-use QR token.          |
+| GET    | `/vote/:batch`                     | Approved voting session   | Open the protected voting website.                   |
+| POST   | `/api/v1/voting/:batch/admit`      | Live QR token             | Exchange a QR token for an HTTP-only voting session. |
+| POST   | `/api/v1/voting/:batch/votes`      | Approved voting session   | Submit one complete ballot.                          |
 
 When testing with a phone on the same network, either open the manager panel
 through the laptop's LAN address or set `PUBLIC_BASE_URL` to that reachable
@@ -278,10 +278,7 @@ Example JSON body:
     {
       "title": "Smart Energy Monitoring",
       "groupNumber": "Group-1",
-      "members": [
-        "Aung Aung",
-        "Su Su"
-      ],
+      "members": ["Aung Aung", "Su Su"],
       "description": "An IoT system that monitors electricity usage."
     }
   ],
